@@ -410,6 +410,8 @@
     "dim2_action_step3": "Classify by severity: ❌ Fatal (must fix immediately) / ⚠️ Important (should fix soon) / 💡 Suggestion (optional optimization)",
     "dim2_action_step4": "Ask user whether to execute fixes; proceed with corrections after confirmation",
     "dim3_title": "Dimension 3: Implementation Rationality Analysis",
+    "dim4_title": "Dimension 4: Performance & Security Check",
+    "dim4_desc": "Automatically invoke performance_check skill to detect memory leaks, OOM, ANR, UI lag, and security vulnerabilities. Executes immediately after Dimension 2 scan to ensure comprehensive code quality coverage.",
     "dim3_desc": "Detect **clearly unreasonable** aspects in code implementation, even if they don't violate explicit rule entries:",
     "dim3_table_header": "| # | Check Item | Check Method | Rationality Standard |",
     "dim3_row1": "| 1 | Dead code/unused classes/methods | Search for public classes/methods not referenced by any code | Public classes/methods with no callers, no route targets, no reflection references |",

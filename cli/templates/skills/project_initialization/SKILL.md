@@ -472,6 +472,20 @@ const platformVars = await getPlatformVars(detection.platform, lang);
 {{PLATFORM_SUGGESTION_CHECKS}}
 ```
 
+#### performance_check/SKILL.md
+**直接复制模板文件**，无需修改：
+```bash
+cp {{DIR}}/skills/performance_check/SKILL.md.template {{DIR}}/skills/performance_check/SKILL.md
+```
+
+该skill包含完整的性能与安全检查能力：
+- 内存泄漏检测（Android/iOS/C++）
+- OOM风险检测（Bitmap/集合/线程池）
+- 启动速度优化（Application/首屏加载）
+- ANR检测（主线程耗时操作）
+- 卡顿检测（RecyclerView/动画/绘制）
+- 代码安全（敏感数据/加密/权限）
+
 ### 3.4 生成 references/ 文档
 
 **Step 1**: 脚本已生成 `_scan.json`（在Phase 1.1完成）
@@ -675,6 +689,7 @@ graph TD
 技能文件:
 - [ ] {{DIR}}/skills/plan_mode/SKILL.md 已生成
 - [ ] {{DIR}}/skills/code_review/SKILL.md 已生成
+- [ ] {{DIR}}/skills/performance_check/SKILL.md 已生成（性能与安全检查）
 - [ ] plan_mode 中包含平台特定的任务模板
 
 Agent文件:
@@ -720,7 +735,7 @@ Agent文件:
 
 📊 生成统计:
 - 规则文件: 2 个 (project_rule.md, conflict_resolution.md)
-- 技能文件: 2 个 (plan_mode, code_review)
+- 技能文件: 3 个 (plan_mode, code_review, performance_check)
 - Agent文件: {3或4} 个 (arch-review, resource-sync, proactive-correction{{#if HAS_NDK}}, cpp-memory-review{{/if}})
 - 引用文档: {N+2} 个 ({N}个模块 + dependencies.md + conventions.md)
 - Hook脚本: 2 个

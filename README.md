@@ -155,6 +155,7 @@ AI_INIT_GUIDE.md                   ← User-friendly initialization guide
 ├── skills/
 │   ├── plan_mode/SKILL.md         ← Task planning (AI-generated)
 │   ├── code_review/SKILL.md       ← Code review (AI-generated)
+│   ├── performance_check/SKILL.md ← Performance & security audit (AI-generated)
 │   └── project_initialization/    ← **AI initialization manual**
 │       └── SKILL.md               ← This is what AI follows!
 ├── agents/
@@ -197,6 +198,7 @@ ai_scaffold v2.0 是一套 **CLI + LLM 协作的脚手架系统**，为你的现
 - **冲突裁决**：多规则碰撞时有显式的优先级仲裁机制
 - **自动生成 References**：AI 扫描项目结构 + 精读源码，生成准确的模块文档
 - **主动纠错**：Agent 主动扫描代码合规性，而非被动审查
+- **性能与安全检查**：自动检测内存泄漏、OOM风险、ANR、卡顿、安全漏洞（由 proactive-correction 调用）
 - **CodeGraph 集成**（可选）：自动检测 CodeGraph CLI——安装后 `references/` 采用轻量模式，结构探索由 CodeGraph 负责，相比手动扫描代码可减少约 90% 的 AI 工具调用
 
 ### 快速开始
@@ -259,6 +261,7 @@ AI_INIT_GUIDE.md                   ← 用户友好的初始化指南
 ├── skills/
 │   ├── plan_mode/SKILL.md         ← 任务规划（AI 生成）
 │   ├── code_review/SKILL.md       ← 代码审查（AI 生成）
+│   ├── performance_check/SKILL.md ← 性能与安全检查（AI 生成）
 │   └── project_initialization/    ← **AI 初始化手册**
 │       └── SKILL.md               ← AI 就是按照这个执行的！
 ├── agents/

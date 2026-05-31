@@ -112,7 +112,36 @@ tools: Read, Grep, Glob, Write, Edit
 3. {{t "proactive_correction.dim3_action_step3"}}
 4. {{t "proactive_correction.dim3_action_step4"}}
 
-#### {{t "proactive_correction.impl_checklist_title"}}
+### {{t "proactive_correction.dim4_title"}}
+
+{{t "proactive_correction.dim4_desc"}}
+
+**自动调用**: 在维度2扫描后，自动调用 `{{DIR}}/skills/performance_check/SKILL.md` 执行性能与安全检查
+
+**检查范围**:
+| 检查类型 | 检查项 | 严重度 |
+|---------|---------|--------|
+| 内存泄漏 | Context/Listener/Bitmap/Handler泄漏 | ❌ 致命 |
+| OOM风险 | Bitmap/集合/线程池无限增长 | ❌ 致命 |
+| 启动速度 | Application/首屏加载耗时 | ️ 警告 |
+| ANR风险 | 主线程网络/数据库/IO操作 | ❌ 致命 |
+| 卡顿检测 | RecyclerView/动画/绘制卡顿 | ⚠️ 警告 |
+| 代码安全 | 硬编码密钥/明文存储/HTTP传输 | ❌ 致命 |
+
+**执行流程**:
+1. 收集待检查文件列表（从git diff或proactive-correction传入）
+2. 委派performance_check skill逐项扫描
+3. 按严重度分类输出报告（致命 → 警告 → 建议）
+4. 对致命问题提供修复方案
+5. 用户确认后执行修复
+6. 修复后重新扫描验证
+
+**与code_review的区别**:
+- `code_review` 关注代码规范和架构约束
+- `performance_check` 关注性能指标和安全漏洞
+- 两者互补，覆盖完整的代码质量检查
+
+{{t "proactive_correction.impl_checklist_title"}}
 
 {{t "proactive_correction.impl_checklist_header"}}
 |---|---------|---------|------|----------|
