@@ -27,6 +27,7 @@ description: Initialize AI coding assistance framework for this project. Scans s
 
 3. **确认CodeGraph状态**
    - 运行 `codegraph --version` (3秒超时)
+   - 如果未安装，执行 Phase 0.4 询问用户是否安装
    - 记录结果用于后续决策
 
 输出检测结果：
@@ -38,15 +39,95 @@ description: Initialize AI coding assistance framework for this project. Scans s
 - 初始化类型: [首次初始化/增量更新]
 ```
 
+## Phase 0.4: CodeGraph 安装提示（仅当未安装时执行）
+
+如果Phase 0.3检测到CodeGraph未安装，询问用户：
+
+```
+⚙️  检测到 CodeGraph CLI 未安装
+
+CodeGraph 是一个代码关系图工具，可为 AI 提供项目结构探索能力（类/方法/符号搜索）。
+安装后可减少约 90% 的 AI 工具调用，使 references/ 目录采用轻量模式。
+
+是否现在安装 CodeGraph？
+  1. ✅ 是，安装并配置（推荐）
+  2. ❌ 否，跳过（将使用完整模式）
+
+选择 1 → 执行 Phase 0.4.1 安装流程
+选择 2 → 设置 HAS_CODEGRAPH = false，references/ 采用完整模式
+```
+
+### Phase 0.4.1: CodeGraph 安装流程
+
+用户选择安装后，执行以下步骤：
+
+```
+Step 1: 安装 CodeGraph CLI
+  执行: npx @colbymchenry/codegraph
+  
+Step 2: 验证安装
+  执行: codegraph --version
+  成功 → HAS_CODEGRAPH = true
+  失败 → 显示错误信息，询问用户是否继续（降级为完整模式）
+  
+Step 3: 初始化 CodeGraph（必须执行）
+  说明: CodeGraph 必须在项目中建立索引才能使用
+  执行: codegraph init
+  等待初始化完成...
+  
+  如果初始化成功:
+    → CodeGraph 已就绪，使用轻量模式
+    → 继续后续流程
+  
+  如果初始化失败:
+    → 显示错误信息
+    → 询问用户: "CodeGraph 初始化失败，是否降级为完整模式？"
+      - 是 → HAS_CODEGRAPH = false，使用完整模式
+      - 否 → 中止初始化流程，让用户手动解决问题
+```
+
+安装成功后设置 `HAS_CODEGRAPH = true`，影响后续行为：
+- `project_rule.md` §1 行为准则使用 CodeGraph 版本
+- `{{ENTRY}}` 入口文件追加 CodeGraph 集成说明
+- `gen_references.py` 使用 `--lightweight` 标志
+- `references/` 采用轻量模式
+
+安装失败不阻塞流程，降级为完整模式继续。
+
 ## Phase 1: 项目深度分析
 
-### 1.1 运行结构扫描器
+### 1.1 运行结构扫描器（带 CodeGraph 验证）
 
-执行以下命令生成项目结构数据：
+**关键步骤**: 在执行扫描前，必须验证 CodeGraph 是否真正可用
 
-```bash
-python {{DIR}}/scripts/gen_references.py{{#if HAS_CODEGRAPH}} --lightweight{{/if}}
 ```
+如果 HAS_CODEGRAPH = true:
+  Step A: 验证 CodeGraph 可用性
+    执行: codegraph explore "test" --limit 1 2>/dev/null
+    
+    如果成功:
+      → CodeGraph 可用 ✅
+      执行: python {{DIR}}/scripts/gen_references.py --lightweight
+      
+    如果失败:
+      → CodeGraph 不可用 ️
+      自动降级: HAS_CODEGRAPH = false
+      提示: "⚠️ CodeGraph 未正确初始化或不可用，已降级为完整模式"
+      执行: python {{DIR}}/scripts/gen_references.py
+      
+如果 HAS_CODEGRAPH = false:
+  直接执行: python {{DIR}}/scripts/gen_references.py
+```
+
+**降级原因可能是**:
+- 用户跳过了 `codegraph init`
+- CodeGraph 索引损坏
+- 项目结构发生变化需要重新索引
+
+**降级后的行为**:
+- `_scan.json` 将包含完整文件列表和目录树
+- AI 可以通过文件列表直接定位源码
+- 不影响初始化流程继续进行
 
 这将生成 `{{DIR}}/references/_scan.json`，包含：
 - 模块列表和依赖关系
@@ -397,11 +478,29 @@ const platformVars = await getPlatformVars(detection.platform, lang);
 
 **Step 2**: AI逐模块生成文档
 
+**重要**: 必须为 _scan.json 中的**所有模块**生成文档，不能遗漏！
+
 对于每个模块，执行：
 ```
 1. 读取 _scan.json 中该模块的结构信息
 2. 逐个读取该模块的源文件（限制每个模块最多10个关键文件）
 3. 基于源码理解生成 {module}.md
+4. 确认文件已保存到 {{DIR}}/references/{module}.md
+```
+
+**模块列表获取**:
+```
+const scanData = JSON.parse(readFile('{{DIR}}/references/_scan.json'));
+const allModules = scanData.modules;  // 获取所有模块
+
+console.log(`📋 共发现 ${allModules.length} 个模块:`);
+allModules.forEach((m, i) => console.log(`  ${i+1}. ${m.name}`));
+
+// 逐个生成
+for (const module of allModules) {
+  console.log(`🔍 正在生成模块文档: ${module.name} (${i+1}/${allModules.length})`);
+  generateModuleDoc(module);
+}
 ```
 
 **{module}.md 模板**:
@@ -590,8 +689,10 @@ Agent文件:
 - [ ] {{DIR}}/references/_scan.json 已生成
 - [ ] {{DIR}}/references/dependencies.md 已生成
 - [ ] {{DIR}}/references/conventions.md 已生成
-- [ ] 至少生成了 3 个核心模块的 {module}.md 文档
+- [ ] **已为 _scan.json 中的所有模块生成文档**（不是只生成3个！）
+- [ ] 验证: {{DIR}}/references/ 目录下的 {module}.md 文件数量 = _scan.json 中的 modules 数量
 - [ ] 所有模块文档中的"模块概述"不为空
+- [ ] 所有模块文档中的"元信息"表格完整填写
 
 入口文件:
 - [ ] {{ENTRY}} 已从极简版替换为完整版

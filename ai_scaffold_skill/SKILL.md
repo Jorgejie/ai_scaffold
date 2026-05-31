@@ -142,15 +142,15 @@ package.json + react-native         → React Native
 以上都不存在                                    → HAS_NDK = false
 ```
 
-### CodeGraph 检测
+### CodeGraph 检测与安装
 
 ```
 # 在 NDK 检测之后，自动检测用户本地是否安装了 CodeGraph CLI
 # 检测到时设置 HAS_CODEGRAPH = true，影响后续 Phase 2-3 的行为
 
 执行 codegraph --version 命令（3s 超时）
-  成功  → HAS_CODEGRAPH = true（参考文档采用轻量模式）
-  失败  → HAS_CODEGRAPH = false（参考文档采用完整模式）
+  成功  → HAS_CODEGRAPH = true，跳过安装提示
+  失败  → HAS_CODEGRAPH = false，进入 Phase 1.3 询问用户是否安装
 ```
 
 > **CodeGraph** 是一个代码关系图工具，可为 AI 提供项目结构探索能力（类/方法/符号搜索）。安装后可减少约 90% 的 AI 工具调用。
@@ -172,7 +172,7 @@ package.json + react-native         → React Native
 - 主包名：{{PACKAGE_NAME}}
 - 源文件扩展名：{{SOURCE_EXTENSIONS}}
 - NDK / C++ 项目：{{HAS_NDK}} (true/false)
-- CodeGraph：{{#if HAS_CODEGRAPH}}已安装（轻量参考模式）{{else}}未安装（完整参考模式）{{/if}}
+- CodeGraph：{{#if HAS_CODEGRAPH}}已安装（轻量参考模式）{{else}}未安装 - 用户选择不安装（完整参考模式）{{/if}}
 ```
 
 ---
@@ -192,14 +192,52 @@ package.json + react-native         → React Native
 | Q7 平台细节 | PLATFORM_SPECIFIC_RULES, BUILD_ENV_TABLE 等 | 平台特定的 SDK/框架版本 |
 | Q8 NDK/C++ 配置（仅 HAS_NDK=true） | NDK_BUILD_SYSTEM, JNI_REGISTRATION_METHOD, NDK_ABI_TARGETS, NDK_SECURITY_FLAGS | NDK 构建和 JNI 配置 |
 
-#### Phase 1.5: CodeGraph 安装提示（在配置问题之前执行）
+### CodeGraph 安装提示（在配置问题之前执行）
 
 当 `HAS_CODEGRAPH = false` 时，询问用户是否安装 CodeGraph：
 
-| 用户选择 | 行为 |
-|---------|------|
-| ✅ 安装 | 自动执行 `npx @colbymchenry/codegraph` 安装 CLI，然后执行 `codegraph init` 在项目下初始化 |
-| ❌ 跳过 | 正常继续，references/ 采用完整模式（包含文件列表、目录树等结构信息） |
+```
+⚙️  检测到 CodeGraph CLI 未安装
+
+CodeGraph 是一个代码关系图工具，可为 AI 提供项目结构探索能力（类/方法/符号搜索）。
+安装后可减少约 90% 的 AI 工具调用，使 references/ 目录采用轻量模式。
+
+是否现在安装 CodeGraph？
+  1. ✅ 是，安装并配置（推荐）
+  2. ❌ 否，跳过（将使用完整模式）
+
+选择 1 → 执行 Phase 1.3.1 安装流程
+选择 2 → 设置 HAS_CODEGRAPH = false，references/ 采用完整模式
+```
+
+#### Phase 1.3.1: CodeGraph 安装流程
+
+用户选择安装后，执行以下步骤：
+
+```
+Step 1: 安装 CodeGraph CLI
+  执行: npx @colbymchenry/codegraph
+  
+Step 2: 验证安装
+  执行: codegraph --version
+  成功 → HAS_CODEGRAPH = true
+  失败 → 显示错误信息，询问用户是否继续（降级为完整模式）
+  
+Step 3: 初始化 CodeGraph（必须执行）
+  说明: CodeGraph 必须在项目中建立索引才能使用，跳过会导致后续无法使用
+  执行: codegraph init
+  等待初始化完成...
+  
+  如果初始化成功:
+    → CodeGraph 已就绪，使用轻量模式
+    → 继续后续流程
+  
+  如果初始化失败:
+    → 显示错误信息
+    → 询问用户: "CodeGraph 初始化失败，是否降级为完整模式？"
+      - 是 → HAS_CODEGRAPH = false，使用完整模式
+      - 否 → 中止初始化流程，让用户手动解决问题
+```
 
 安装成功后设置 `HAS_CODEGRAPH = true`，影响后续生成行为：
 - `project_rule.md` §1 行为准则使用 CodeGraph 版本（AI 优先使用 `codegraph_explore` 工具）
@@ -354,9 +392,27 @@ Step 3: 增量更新受影响的 {module}.md / dependencies.md
 
 **Step 2** AI 对每个模块执行以下操作：
 
-1. 读取 `_scan.json` 中该模块的结构数据（目录树、文件列表、依赖）
+**重要**: 必须为 _scan.json 中的**所有模块**生成文档，不能只生成部分模块！
+
+1. 读取 `_scan.json` 获取所有模块列表
 2. **逐个读取**该模块的所有源码文件（使用工具读取文件内容）
 3. 基于源码理解，生成完整参考文档
+4. 确认文件已保存到 {{DIR}}/references/{module}.md
+
+**模块列表获取**:
+```
+const scanData = JSON.parse(readFile('{{DIR}}/references/_scan.json'));
+const allModules = scanData.modules;  // 获取所有模块
+
+console.log(`📋 共发现 ${allModules.length} 个模块:`);
+allModules.forEach((m, i) => console.log(`  ${i+1}. ${m.name}`));
+
+// 逐个生成
+for (const module of allModules) {
+  console.log(`🔍 正在生成模块文档: ${module.name} (${i+1}/${allModules.length})`);
+  generateModuleDoc(module);
+}
+```
 
 **文件 13** 为每个模块生成 `{{DIR}}/references/{module}.md`，必须包含以下完整内容：
 
