@@ -1,9 +1,9 @@
 {
   "name": "ai-scaffold-pro",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "AI Coding Skeleton — CLI + LLM协作架构: CLI搭建骨架 → AI深度初始化",
   "bin": {
-    "ai-scaffold-pro": "./bin/cli.js"
+    "ai-scaffold-pro": "bin/cli.js"
   },
   "type": "module",
   "scripts": {

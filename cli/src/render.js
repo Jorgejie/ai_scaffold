@@ -405,5 +405,4 @@ function countFiles(dir) {
   }
   return count;
 }
-}
 
