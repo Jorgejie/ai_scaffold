@@ -39,10 +39,13 @@ export async function detectProject(targetDir) {
     allDetected: [],
   };
 
+  console.log(chalk.gray('  Scanning project structure...'));
+
   // 1. 检测已有 AI 工具
   for (const [indicator, tool] of Object.entries(AI_TOOLS)) {
     if (fs.existsSync(path.join(targetDir, indicator))) {
       result.existingTool = tool;
+      console.log(chalk.gray(`  ✓ Found existing ${tool.target} setup (${indicator})`));
       break;
     }
   }
@@ -60,11 +63,13 @@ export async function detectProject(targetDir) {
 
   // 输出检测日志
   if (matched.length > 0) {
-    console.log(chalk.gray('  检测到以下项目指标:'));
+    console.log(chalk.gray('  Detected project indicators:'));
     for (const m of matched) {
       const label = m.platform || 'package.json';
       console.log(chalk.gray(`    • ${m.file} → ${label} (priority: ${m.priority})`));
     }
+  } else {
+    console.log(chalk.yellow('  ⚠ No standard project indicators found, using generic mode'));
   }
 
   // 3. 确定平台
@@ -77,15 +82,18 @@ export async function detectProject(targetDir) {
       if (isAndroid) {
         result.platform = 'Android';
         result.buildSystem = top.build;
+        console.log(chalk.gray('  ✓ Verified as Android project (found AndroidManifest.xml or com.android plugin)'));
       } else {
         result.platform = 'JVM';
         result.buildSystem = top.build;
+        console.log(chalk.gray('  ✓ Detected as JVM project (no Android-specific files)'));
       }
     } else if (top.platform === null && top.file === 'package.json') {
       // package.json 深度检测
       const detected = detectFromPackageJson(targetDir);
       result.platform = detected.platform;
       result.buildSystem = detected.build;
+      console.log(chalk.gray(`  ✓ Identified Node.js project type: ${detected.platform}`));
     } else {
       result.platform = top.platform;
       result.buildSystem = top.build;
@@ -100,21 +108,31 @@ export async function detectProject(targetDir) {
 
     // 混合项目日志
     if (matched.length > 1) {
-      console.log(chalk.yellow(`  ⚠ 检测到多个平台指标，已选择最高优先级: ${result.platform} (${result.buildSystem})`));
+      console.log(chalk.yellow(`  ⚠ Multiple platforms detected, selected highest priority: ${result.platform} (${result.buildSystem})`));
+      console.log(chalk.gray(`    Other detected platforms: ${matched.slice(1).map(m => m.platform || 'Node').join(', ')}`));
     }
   }
 
   // 4. 检测 NDK/C++
   result.hasNdk = detectNdk(targetDir);
+  if (result.hasNdk) {
+    console.log(chalk.gray('  ✓ NDK/C++ code detected (found .cpp/.c/.h files or CMakeLists.txt)'));
+  }
 
   // 5. 检测语言
   result.language = detectLanguage(targetDir, result.platform, result.buildSystem);
+  console.log(chalk.gray(`  ✓ Primary language: ${result.language}`));
 
   // 6. 检测 CodeGraph
   result.hasCodeGraph = detectCodeGraph();
   if (result.hasCodeGraph) {
-    console.log(chalk.gray('  CodeGraph: detected'));
+    console.log(chalk.gray('  ✓ CodeGraph CLI detected (will use lightweight references mode)'));
+  } else {
+    console.log(chalk.gray('  ℹ CodeGraph CLI not found (will use full references mode)'));
+    console.log(chalk.gray('    Tip: Install with `npx @colbymchenry/codegraph` for better performance'));
   }
+
+  console.log(chalk.green(`\n  Project detection complete: ${result.platform} / ${result.buildSystem}\n`));
 
   return result;
 }

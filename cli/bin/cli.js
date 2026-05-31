@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
 import chalk from 'chalk';
-import { execSync } from 'child_process';
 import { detectProject } from '../src/detect.js';
-import { promptConfig } from '../src/prompts.js';
-import { renderTemplates } from '../src/render.js';
+import { promptMinimalConfig } from '../src/prompts.js';
+import { createSkeleton } from '../src/render.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -12,75 +11,67 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_ROOT = path.resolve(__dirname, '../templates');
 
 async function main() {
-  console.log(chalk.cyan.bold('\n AI Coding Skeleton — ai-scaffold\n'));
+  console.log(chalk.cyan.bold('\n🤖 AI Coding Skeleton — ai-scaffold\n'));
+  console.log(chalk.gray('CLI + LLM 协作架构: CLI搭建骨架 → AI深度初始化\n'));
 
   const targetDir = process.argv[2] || process.cwd();
-  console.log(chalk.gray(` Target directory: ${targetDir}\n`));
+  console.log(chalk.gray(`📁 Target directory: ${targetDir}\n`));
 
-  // Phase 0: Language + AI tool selection
-  // Phase 1: Project detection
-  console.log(chalk.yellow(' Detecting project...'));
+  // Phase 1: 项目检测
+  console.log(chalk.yellow('🔍 Step 1: Detecting project...'));
   const detection = await detectProject(targetDir);
-  console.log(chalk.green(` Platform: ${detection.platform} / ${detection.buildSystem}`));
+  console.log(chalk.green(`✓ Platform: ${detection.platform} / ${detection.buildSystem}`));
+  console.log(chalk.green(`✓ Language: ${detection.language}`));
   if (detection.hasNdk) {
-    console.log(chalk.green(' NDK/C++: detected'));
+    console.log(chalk.green('✓ NDK/C++: detected'));
+  }
+  if (detection.hasCodeGraph) {
+    console.log(chalk.green('✓ CodeGraph: installed (will use lightweight mode)'));
   }
   console.log();
 
-  // Phase 0 + Phase 2: Interactive configuration
-  const config = await promptConfig(detection);
+  // Phase 2: 最小化配置（仅语言和AI工具选择）
+  console.log(chalk.yellow('⚙️  Step 2: Minimal configuration...'));
+  const config = await promptMinimalConfig(detection);
+  console.log(chalk.green(`✓ AI Tool: ${config.target}`));
+  console.log(chalk.green(`✓ Language: ${config.lang === 'zh' ? '中文' : 'English'}\n`));
 
-  // Phase 3: Generate files
-  console.log(chalk.yellow('\n Generating files...\n'));
-  await renderTemplates(TEMPLATE_ROOT, targetDir, config, detection);
+  // Phase 3: 创建骨架（不渲染具体内容）
+  console.log(chalk.yellow('🏗️  Step 3: Creating skeleton...'));
+  await createSkeleton(TEMPLATE_ROOT, targetDir, config, detection);
 
-  // Summary
+  // 输出完成信息和下一步指引
   const dir = config.dir;
   const entry = config.entry;
   const isZh = config.lang === 'zh';
-  const langLabel = config.lang === 'en' ? 'English' : '中文';
-  console.log(chalk.cyan.bold(`\n ${config.target.toUpperCase()} system initialized\n`));
-  console.log(chalk.white(` Language: ${langLabel}`));
-  console.log(chalk.white(` Entry file: ${entry}`));
-  console.log(chalk.white(` Config dir: ${dir}/`));
-
-  console.log('');
-  console.log(chalk.cyan(isZh ? '📋 下一步操作：' : '📋 Next Steps:'));
-  console.log('');
-  if (config.hasCodeGraph) {
-    console.log(chalk.white(isZh 
-      ? `  1. [必做] 运行 python ${dir}/scripts/gen_references.py --lightweight 生成轻量参考文档`
-      : `  1. [Required] Run python ${dir}/scripts/gen_references.py --lightweight to generate lightweight references`));
-  } else {
-    console.log(chalk.white(isZh 
-      ? `  1. [必做] 运行 python ${dir}/scripts/gen_references.py 生成项目参考文档`
-      : `  1. [Required] Run python ${dir}/scripts/gen_references.py to generate project references`));
-  }
-  console.log(chalk.white(isZh
-    ? `  2. [必做] 检查 ${dir}/rules/project_rule.md 中的架构约束是否符合项目实际`
-    : `  2. [Required] Review ${dir}/rules/project_rule.md to verify architecture constraints match your project`));
-  console.log(chalk.white(isZh
-    ? `  3. [可选] 调整 ${dir}/agents/ 中各 Agent 的检查规则`
-    : `  3. [Optional] Adjust check rules in ${dir}/agents/`));
-  console.log(chalk.white(isZh
-    ? `  4. [可选] 修改 ${dir}/skills/ 中的审查标准`
-    : `  4. [Optional] Modify review standards in ${dir}/skills/`));
-  console.log('');
+  
+  console.log(chalk.cyan.bold(`\n✅ Skeleton created successfully!\n`));
+  console.log(chalk.white(`Entry file: ${entry}`));
+  console.log(chalk.white(`Config dir: ${dir}/`));
+  console.log(chalk.white(`Language: ${isZh ? '中文' : 'English'}\n`));
+  
+  console.log(chalk.cyan.bold(isZh ? '📋 下一步操作：' : '📋 Next Steps:\n'));
+  console.log(chalk.white(isZh 
+    ? '  1. 在 AI 工具中打开本项目' 
+    : '  1. Open this project in your AI tool'));
+  console.log(chalk.white(isZh 
+    ? `  2. 输入指令: "按 ${dir}/skills/project_initialization/SKILL.md 初始化"`
+    : `  2. Enter command: "Initialize using ${dir}/skills/project_initialization/SKILL.md"`));
+  console.log(chalk.white(isZh 
+    ? '  3. AI 将扫描源码、理解架构、生成定制化规则'
+    : '  3. AI will scan source code, understand architecture, generate customized rules'));
+  console.log();
+  
   console.log(chalk.gray(isZh 
-    ? '  预计补充时间：5-10 分钟'
-    : '  Estimated setup time: 5-10 minutes'));
-  console.log(chalk.gray(isZh
-    ? '  验证方式：让 AI 阅读生成的规则文件并确认无冲突'
-    : '  Verification: Ask the AI to read the generated rules and confirm no conflicts'));
-  console.log('');
+    ? '  💡 提示: 查看 AI_INIT_GUIDE.md 了解详细流程'
+    : '  💡 Tip: See AI_INIT_GUIDE.md for detailed instructions'));
+  console.log(chalk.gray(isZh 
+    ? '  ⏱️  预计AI初始化时间: 2-5分钟\n'
+    : '  ⏱️  Estimated AI initialization time: 2-5 minutes\n'));
 }
 
 main().catch(err => {
-  console.error(chalk.red('Error:'), err.message);
-  process.exit(1);
-});
-
-main().catch(err => {
-  console.error(chalk.red('Error:'), err.message);
+  console.error(chalk.red('\n❌ Error:'), err.message);
+  console.error(chalk.red('   No files were written to the target directory.'));
   process.exit(1);
 });
