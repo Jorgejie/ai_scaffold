@@ -30,7 +30,7 @@ Instead of hand-writing CLAUDE.md and rule files for each project, ai_scaffold a
 ### Architecture
 
 ```
-                          npx ai-scaffold
+                       npx ai-scaffold-pro
                                │
           ┌────────────────────┼────────────────────┐
           ▼                    ▼                    ▼
@@ -97,7 +97,7 @@ Instead of hand-writing CLAUDE.md and rule files for each project, ai_scaffold a
 ```bash
 # Run directly with npx (no install needed)
 cd your-project/
-npx ai-scaffold
+npx ai-scaffold-pro
 
 # Follow the interactive prompts:
 # 1. Select language (中文 / English)
@@ -196,7 +196,7 @@ ai_scaffold 是一套基于模板的脚手架系统，为你的现有项目生�
 ```bash
 # 直接用 npx 运行（无需安装）
 cd your-project/
-npx ai-scaffold
+npx ai-scaffold-pro
 
 # 按交互提示操作：
 # 1. 选择语言（中文 / English）

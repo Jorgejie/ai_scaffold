@@ -1,9 +1,9 @@
 {
-  "name": "ai-scaffold",
-  "version": "1.0.0",
+  "name": "ai-scaffold-pro",
+  "version": "1.1.1",
   "description": "AI Coding Skeleton — Generate structured rules, skills, agents, and hooks for your project",
   "bin": {
-    "ai-scaffold": "./bin/cli.js"
+    "ai-scaffold-pro": "./bin/cli.js"
   },
   "type": "module",
   "scripts": {

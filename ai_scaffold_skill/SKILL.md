@@ -12,7 +12,7 @@ description: Bootstrap AI coding assistance into ANY project. Supports 4 AI tool
 ## 架构设计
 
 ```
-                          npx ai-scaffold
+                          npx ai-scaffold-pro
                                │
           ┌────────────────────┼────────────────────┐
           ▼                    ▼                    ▼
